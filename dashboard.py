@@ -1,9 +1,13 @@
 """
 🏭 Dashboard — Détection d'anomalies de roulements industriels
-NASA IMS Bearing Dataset
+NASA IMS Bearing Dataset — Version Cloud (Streamlit)
 """
 
 import os
+
+# KAGGLE CREDENTIALS depuis Streamlit Secrets
+os.environ["KAGGLE_USERNAME"] = __import__('streamlit').secrets["KAGGLE_USERNAME"]
+os.environ["KAGGLE_KEY"]      = __import__('streamlit').secrets["KAGGLE_KEY"]
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -61,10 +65,11 @@ st.markdown("---")
 # ─────────────────────────────────────────────
 st.sidebar.title("⚙️ Paramètres")
 
-dataset_path = st.sidebar.text_input(
-    "📁 Chemin du dataset",
-    value=r"C:\Users\DANGER\.cache\kagglehub\datasets\vinayak123tyagi\bearing-dataset\versions\1\2nd_test\2nd_test"
-)
+@st.cache_data
+def get_dataset_path():
+    import kagglehub
+    path = kagglehub.dataset_download("vinayak123tyagi/bearing-dataset")
+    return os.path.join(path, "2nd_test", "2nd_test")
 
 train_size = st.sidebar.slider(
     "📊 Fichiers d'entraînement (période saine)",
@@ -148,11 +153,10 @@ def train_model(df, train_sz, contam, n_est):
 # ─────────────────────────────────────────────
 # CHARGEMENT
 # ─────────────────────────────────────────────
-if not os.path.exists(dataset_path):
-    st.error("❌ Chemin du dataset invalide. Vérifie le chemin dans la sidebar.")
-    st.stop()
+with st.spinner("📥 Téléchargement du dataset NASA..."):
+    dataset_path = get_dataset_path()
 
-with st.spinner("Chargement et entraînement du modèle..."):
+with st.spinner("⚙️ Chargement et entraînement du modèle..."):
     df = load_data(dataset_path, train_size)
     scores, anomalies = train_model(df, train_size, contamination, n_estimators)
 
